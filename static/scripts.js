@@ -38,7 +38,7 @@ $(document).ready(function() {
     // Options for map
     // https://developers.google.com/maps/documentation/javascript/reference#MapOptions
     let options = {
-        center: {lat: 37.4236, lng: -122.1619}, // Stanford, California
+        center: {lat: 32.8264, lng: -97.0972}, // Stanford, California
         disableDefaultUI: true,
         mapTypeId: google.maps.MapTypeId.ROADMAP,
         maxZoom: 14,
@@ -63,7 +63,45 @@ $(document).ready(function() {
 // Add marker for place to map
 function addMarker(place)
 {
-    // TODO
+
+    let marker = new google.maps.Marker({
+        position: {lat: place.latitude, lng: place.longitude},
+        map: map,
+        animation: google.maps.Animation.DROP,
+        label: place.place_name + ', ' + place.admin_name1
+    });
+
+    marker.addListener('click', function() {
+
+        let params = {
+            geo: place.postal_code
+        };
+
+        // show loading
+        showInfo(marker);
+
+        // make ajax call
+        $.getJSON("/articles", params, function(data) {
+
+            // start content
+            let content = '<ul>';
+
+            // fill up content
+            data.forEach(function(e) {
+                content += `<li><a href=${e.link} target="_blank">${e.title}</a></li>`;
+            })
+
+            // end content
+            content += '</ul>';
+
+            // show info window
+            showInfo(marker, content);
+        });
+
+    });
+
+    // add to global object for easier deletion
+    markers.push(marker);
 }
 
 
@@ -98,7 +136,7 @@ function configure()
         templates: {
             suggestion: Handlebars.compile(
                 "<div>" +
-                "TODO" +
+                "{{ place_name}}, {{ admin_name1 }}, {{ postal_code }}" +
                 "</div>"
             )
         }
@@ -122,8 +160,8 @@ function configure()
     // Re-enable ctrl- and right-clicking (and thus Inspect Element) on Google Map
     // https://chrome.google.com/webstore/detail/allow-right-click/hompjdfbfmmmgflfjdlnkohcplmboaeo?hl=en
     document.addEventListener("contextmenu", function(event) {
-        event.returnValue = true; 
-        event.stopPropagation && event.stopPropagation(); 
+        event.returnValue = true;
+        event.stopPropagation && event.stopPropagation();
         event.cancelBubble && event.cancelBubble();
     }, true);
 
@@ -138,7 +176,11 @@ function configure()
 // Remove markers from map
 function removeMarkers()
 {
-    // TODO
+    markers.forEach(function(ele) {
+        ele.setMap(null);
+    })
+
+    markers.length = 0;
 }
 
 
@@ -150,7 +192,7 @@ function search(query, syncResults, asyncResults)
         q: query
     };
     $.getJSON("/search", parameters, function(data, textStatus, jqXHR) {
-     
+
         // Call typeahead's callback with search results (i.e., places)
         asyncResults(data);
     });
@@ -184,7 +226,7 @@ function showInfo(marker, content)
 
 
 // Update UI's markers
-function update() 
+function update()
 {
     // Get map's bounds
     let bounds = map.getBounds();
