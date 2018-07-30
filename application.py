@@ -8,6 +8,9 @@ from helpers import lookup
 # Configure application
 app = Flask(__name__)
 
+# some broken changes fix
+app.config['JSONIFY_PRETTYPRINT_REGULAR'] = False
+
 # Configure CS50 Library to use SQLite database
 db = SQL("sqlite:///mashup.db")
 
@@ -31,16 +34,27 @@ def index():
 def articles():
     """Look up articles for geo"""
 
-    # TODO
-    return jsonify([])
+    if not request.args.get("geo"):
+        raise RuntimeError("missing geo")
+
+    # grab data from helper
+    data = lookup(request.args.get("geo"))
+
+    return jsonify(data[:5])
 
 
 @app.route("/search")
 def search():
     """Search for places that match query"""
 
-    # TODO
-    return jsonify([])
+    if not request.args.get("q"):
+        raise RuntimeError("missing q")
+
+    # get db data
+    q = request.args.get("q") + "%"
+    rows = db.execute("SELECT * FROM places WHERE postal_code LIKE :q OR place_name LIKE :q", q=q)
+
+    return jsonify(rows)
 
 
 @app.route("/update")
